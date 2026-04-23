@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session
 
 engine = create_engine(
     url="",
@@ -10,3 +10,9 @@ engine = create_engine(
 def create_db_tables():
     # create all tables
     SQLModel.metadata.create_all(bind=engine)
+
+
+def get_session():
+    # session has a context manager, so we can use it with a with statement
+    with Session(bind=engine) as session:
+        yield session
