@@ -1,4 +1,7 @@
 
+from contextlib import contextmanager
+
+
 class Database:
     def __init__(self):
         # make connection to the database
@@ -15,3 +18,11 @@ class Database:
     def __exit__(self):
         # close the connection here
         pass
+
+
+@contextmanager
+def managed_database():
+    db = Database()
+    # connect to the database here
+    yield db
+    db.close()
