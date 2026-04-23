@@ -9,7 +9,7 @@ class ShipmentStatus(str, Enum):
     in_transit = "in_transit"
 
 
-class Shipment(SQLModel):
+class Shipment(SQLModel, table=True):
     __tablename__ = "shipment"
     id: int
     content: str

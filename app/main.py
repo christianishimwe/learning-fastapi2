@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 from . import schemas
+from contextlib import asynccontextmanager
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan_handler(app: FastAPI):
+    print("Server started..")
+    yield
+    print("Server stopped..")
+
+
+app = FastAPI(lifespan=lifespan_handler)
 
 
 @app.get("/shipments", response_model=schemas.BaseShipment)
