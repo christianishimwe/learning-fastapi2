@@ -1,13 +1,17 @@
 from fastapi import FastAPI
 from . import schemas
 from contextlib import asynccontextmanager
+from rich import print, panel
+from app.database.session import create_db_tables
 
 
 @asynccontextmanager
 async def lifespan_handler(app: FastAPI):
-    print("Server started..")
+    print(panel.Panel("Server started..", border_style="green"))
+    # create the database tables here
+    create_db_tables()
     yield
-    print("Server stopped..")
+    print(panel.Panel("Server stopped..", border_style="red"))
 
 
 app = FastAPI(lifespan=lifespan_handler)

@@ -11,7 +11,8 @@ class ShipmentStatus(str, Enum):
 
 class Shipment(SQLModel, table=True):
     __tablename__ = "shipment"
-    id: int
+    # none here allows us to create a new shipment without providing an id, and the database will auto-generate it
+    id: int = Field(primary_key=True, default=None)
     content: str
     weight: float = Field(le=25)
     destinatio: int
