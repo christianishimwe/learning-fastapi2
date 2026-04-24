@@ -42,7 +42,7 @@ def get_shipments(incoming_shipment: schemas.BaseShipment, session: Session = De
 
 
 @app.patch("/shipments/{shipment_id}", response_model=schemas.BaseShipment)
-def update_shipment(shipment_id: int, incoming_shipment: schemas.BaseShipment) -> dict:
+def update_shipment(shipment_id: int, incoming_shipment: schemas.BaseShipment, session: Session = Depends(get_session)) -> dict:
     # create a new shipment dictionary
     new_shipment = {
         "content": "wood",
