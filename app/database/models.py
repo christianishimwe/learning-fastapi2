@@ -1,10 +1,11 @@
-from sqlmodel import SQLModel, Field
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+
+from sqlmodel import Field, SQLModel
 
 
 class ShipmentStatus(str, Enum):
-    pending = "pending"
+    placed = "placed"
     shipped = "shipped"
     in_transit = "in_transit"
 
