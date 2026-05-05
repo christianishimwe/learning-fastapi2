@@ -1,11 +1,13 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import Session, SQLModel
+from app.config import settings
 
-engine = create_engine(
-    url="",
+engine = create_async_engine(
+    url=settings.POSTGRES_URL,
+    # log sql queries, this is useful for debugging and development, but should be turned off in production
     echo=True,
 )
 
