@@ -1,8 +1,9 @@
 from typing import Annotated
 
 from fastapi import Depends
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlmodel import Session, SQLModel
+from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
 engine = create_async_engine(
@@ -12,15 +13,24 @@ engine = create_async_engine(
 )
 
 
-def create_db_tables():
+async def create_db_tables():
     # create all tables
-    SQLModel.metadata.create_all(bind=engine)
+    with engine.begin() as connection:
+        await connection.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
+async def get_session():
     # session has a context manager, so we can use it with a with statement
-    with Session(bind=engine) as session:
+    """
+    with AsyncSession(bind=engine) as session:
+        yield session
+    """
+    async_session = sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    async with async_session() as session:
         yield session
 
-
-SessionDep = Annotated[Session, Depends(get_session)]
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
