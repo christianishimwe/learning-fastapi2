@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from .database.models import ShipmentStatus
+from app.database.models import ShipmentStatus
 
 
 class BaseShipment(BaseModel):
@@ -10,8 +10,9 @@ class BaseShipment(BaseModel):
 
 
 class ShipmentRead(BaseShipment):
+    id: int
     status: ShipmentStatus
-    estimated_dilivery: datetime
+    estimated_delivery: datetime
 
 
 class ShipmentCreate(BaseShipment):

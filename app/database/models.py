@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
+from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 
@@ -16,6 +17,14 @@ class Shipment(SQLModel, table=True):
     id: int = Field(primary_key=True, default=None)
     content: str
     weight: float = Field(le=25)
-    destinatio: int
+    destination: int
     status: ShipmentStatus
-    estimated_dilivery: datetime
+    estimated_delivery: datetime
+
+
+class Seller(SQLModel, table=True):
+    __tablename__ = "seller"
+    id: int = Field(primary_key=True, default=None)
+    name: str
+    email: EmailStr
+    password_hash: str

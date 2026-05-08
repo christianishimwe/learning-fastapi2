@@ -2,12 +2,12 @@ from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlmodel import Session, SQLModel
+from sqlmodel import SQLModel
 from sqlalchemy.orm import sessionmaker
-from app.config import settings
+from app.config import database_settings
 
 engine = create_async_engine(
-    url=settings.POSTGRES_URL,
+    url=database_settings.POSTGRES_URL,
     # log sql queries, this is useful for debugging and development, but should be turned off in production
     echo=True,
 )
@@ -15,7 +15,7 @@ engine = create_async_engine(
 
 async def create_db_tables():
     # create all tables
-    with engine.begin() as connection:
+    async with engine.begin() as connection:
         await connection.run_sync(SQLModel.metadata.create_all)
 
 
@@ -32,5 +32,3 @@ async def get_session():
     )
     async with async_session() as session:
         yield session
-
-SessionDep = Annotated[AsyncSession, Depends(get_session)]
