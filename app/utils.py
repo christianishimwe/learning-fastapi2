@@ -6,7 +6,7 @@ from uuid import uuid4
 
 def generate_access_token(
         data: dict,
-        expiry: timedelta = timedelta(seconds=10)
+        expiry: timedelta = timedelta(minutes=15)
 ) -> str | None:
     try:
         return jwt.encode(

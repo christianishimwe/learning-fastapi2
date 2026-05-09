@@ -1,5 +1,6 @@
 
 from datetime import datetime, timedelta
+from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.schemas.seller import SellerCreate
@@ -18,6 +19,9 @@ DUMMY_HASH = password_hasher.hash("dummy_password")
 class SellerService:
     def __init__(self, session: AsyncSession):
         self.session = session
+
+    async def get(self, id: UUID):
+        return await self.session.get(Seller, id)
 
     async def add(self, credentials: SellerCreate) -> Seller:
         seller = Seller(
@@ -52,7 +56,7 @@ class SellerService:
         token = generate_access_token(data={
             "user": {
                 "name": seller.name,
-                "id": seller.id
+                "id": str(seller.id)
             }
         })
         return token

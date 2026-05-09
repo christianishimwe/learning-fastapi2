@@ -1,5 +1,8 @@
 
+from uuid import UUID
 from pydantic import BaseModel, EmailStr
+
+from app.database.models import Shipment
 
 
 class BaseSeller(BaseModel):
@@ -8,7 +11,8 @@ class BaseSeller(BaseModel):
 
 
 class SellerRead(BaseSeller):
-    pass
+    id: UUID
+    shipments: list[Shipment]
 
 
 class SellerCreate(BaseSeller):
