@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from app.api.dependencies import ShipmentDep
+from app.api.dependencies import SellerDep, ShipmentDep
 from app.database import models
 from ..schemas import shipment
 
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/shipment",
 
 
 @router.get("/", response_model=shipment.ShipmentRead)
-async def get_shipments(id: int, service: ShipmentDep):
+async def get_shipments(id: int, service: ShipmentDep, seller: SellerDep):
     ''''
     Notice how we used Depends to inject the database session into our endpoint, this allows us to use the session to interact with the database and perform CRUD operations on the shipments table.
     insted if we just used session = get_session(), this would be given a value at function defintion time, but
@@ -24,7 +24,7 @@ async def get_shipments(id: int, service: ShipmentDep):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def submit_shipment(incoming_shipment: shipment.ShipmentCreate, service: ShipmentDep,) -> models.Shipment:
+async def submit_shipment(incoming_shipment: shipment.ShipmentCreate, service: ShipmentDep, seller: SellerDep) -> models.Shipment:
     shipment = await service.add(incoming_shipment)
     return shipment
 

@@ -3,22 +3,21 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 
-from app.api.dependencies import SellerDep
+from app.api.dependencies import SellerServiceDep, SessionDep, get_token_data
+from app.database.models import Seller
 from app.utils import decode_access_token
 from ..schemas.seller import SellerCreate, SellerRead
 
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/seller/login")
 router = APIRouter(prefix="/seller", tags=["seller"])
 
 
 @router.post("/signup", response_model=SellerRead)
-async def register_seller(seller: SellerCreate, service: SellerDep):
+async def register_seller(seller: SellerCreate, service: SellerServiceDep):
     seller_out = await service.add(seller)
 
 
 @router.post("/login")
-async def login_seller(request_form: Annotated[OAuth2PasswordRequestForm, Depends()], service: SellerDep):
+async def login_seller(request_form: Annotated[OAuth2PasswordRequestForm, Depends()], service: SellerServiceDep):
     token = await service.token(request_form.username, request_form.password)
     return {
         "access_token": token,
@@ -26,13 +25,7 @@ async def login_seller(request_form: Annotated[OAuth2PasswordRequestForm, Depend
     }
 
 
-@router.get("/dashboard")
-async def get_dashboard(token: Annotated[str, Depends(oauth2_scheme)],):
-    data = decode_access_token(token)
-    if data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Access Token")
-
-    return {
-        "detail": "Successfully Authenticated"
-    }
+@router.get("/logout")
+async def logout_seller(token_data: Annotated[dict, Depends(get_token_data)]):
+    token_data["jti"]
+    pass

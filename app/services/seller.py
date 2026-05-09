@@ -30,7 +30,7 @@ class SellerService:
 
         return seller
 
-    async def token(self, email, password) -> str:
+    async def token(self, email, password) -> str | None:
         # validate the credentials
         result = await self.session.execute(
             select(Seller).where(Seller.email == email))
@@ -52,7 +52,7 @@ class SellerService:
         token = generate_access_token(data={
             "user": {
                 "name": seller.name,
-                "email": seller.name
+                "id": seller.id
             }
         })
         return token

@@ -1,17 +1,19 @@
 import jwt
 from app.config import jwt_settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 
 def generate_access_token(
         data: dict,
-        expiry: timedelta = timedelta(days=1)
+        expiry: timedelta = timedelta(seconds=10)
 ) -> str | None:
     try:
         return jwt.encode(
             payload={
                 **data,
-                "exp": datetime.now() + timedelta(days=1)
+                "jti": str(uuid4()),
+                "exp": datetime.now(timezone.utc) + expiry,
             },
             algorithm=jwt_settings.JWT_ALGORITHM,
             key=jwt_settings.JWT_SECRET_KEY
