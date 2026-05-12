@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from uuid import UUID
 from app.api.schemas.seller import SellerRead
-from app.database.models import Seller, ShipmentStatus
+from app.database.models import Seller, ShipmentEvent, ShipmentStatus
 
 
 class BaseShipment(BaseModel):
@@ -13,7 +13,7 @@ class BaseShipment(BaseModel):
 
 class ShipmentRead(BaseShipment):
     id: UUID
-    status: ShipmentStatus
+    timeline: list[ShipmentEvent]
     estimated_delivery: datetime
     seller: SellerRead
 
@@ -23,5 +23,7 @@ class ShipmentCreate(BaseShipment):
 
 
 class ShipmentUpdate(BaseModel):
+    location: int | None = Field(default=None)
+    description: str | None = Field(default=None)
     status: ShipmentStatus | None = Field(default=None)
     estimated_delivery: datetime | None = Field(default=None)

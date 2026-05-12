@@ -1,7 +1,8 @@
 from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
-from app.api.dependencies import SellerDep, ShipmentDep
+from app.api.dependencies import DeliveryPartnerDep, SellerDep, ShipmentServiceDep
 from app.database import models
+from app.services.shipment import ShipmentService
 from ..schemas import shipment
 
 router = APIRouter(prefix="/shipment",
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/shipment",
 
 
 @router.get("/", response_model=shipment.ShipmentRead)
-async def get_shipments(id: UUID, service: ShipmentDep, seller: SellerDep):
+async def get_shipments(id: UUID, service: ShipmentServiceDep, seller: SellerDep):
     ''''
     Notice how we used Depends to inject the database session into our endpoint, this allows us to use the session to interact with the database and perform CRUD operations on the shipments table.
     insted if we just used session = get_session(), this would be given a value at function defintion time, but
@@ -25,30 +26,32 @@ async def get_shipments(id: UUID, service: ShipmentDep, seller: SellerDep):
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
-async def submit_shipment(incoming_shipment: shipment.ShipmentCreate, service: ShipmentDep, seller: SellerDep) -> models.Shipment:
+async def submit_shipment(incoming_shipment: shipment.ShipmentCreate, service: ShipmentServiceDep, seller: SellerDep) -> models.Shipment:
     shipment = await service.add(incoming_shipment, seller)
     return shipment
 
+# update shipment
+# should only be accessible to allowed delivery partners
+
 
 @router.patch("/", response_model=shipment.ShipmentRead)
-async def update_shipment(id: int, shipment_update: shipment.ShipmentUpdate, service: ShipmentDep,):
+async def update_shipment(
+        id: UUID,
+        shipment_update: shipment.ShipmentUpdate,
+        partner: DeliveryPartnerDep,
+        service: ShipmentServiceDep,
+):
     update = shipment_update.model_dump(exclude_none=True)
     if not update:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided to update"
         )
 
-    shipment = await service.update(id, update)
-    if shipment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
+    return await service.update(id, shipment_update, partner)
 
-    return shipment
+# cancel a shipment by id
 
 
-@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_shipment(shipment_id: int, service: ShipmentDep):
-    shipment = await service.delete(shipment_id)
-    if shipment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Shipment not found")
+@router.get("/cancel", response_model=shipment.ShipmentRead)
+async def cancel_shipment(id: UUID, seller: SellerDep, service: ShipmentServiceDep):
+    return await service.cancel(id, seller)

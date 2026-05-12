@@ -1,45 +1,110 @@
 from datetime import datetime, timedelta
-from app.api.schemas.shipment import ShipmentCreate
-from app.database.models import Seller, Shipment, ShipmentStatus
+from email.policy import HTTP
+
+from fastapi import HTTPException, status
+from app.api.schemas.shipment import ShipmentCreate, ShipmentUpdate
+from app.database.models import DeliveryPartner, Seller, Shipment, ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Any
 from uuid import UUID
 
+from app.services.shipment_event import ShipmnentEventService
 
-class ShipmentService:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-        pass
+from .delivery_partner import DeliveryPartnerService
 
-    async def get(self, id: UUID) -> Shipment | None:
-        return await self.session.get(Shipment, id)
+from .base import BaseService
+
+
+class ShipmentService(BaseService):
+    def __init__(
+            self,
+            session: AsyncSession,
+            partner_service: DeliveryPartnerService,
+            event_service: ShipmnentEventService,
+    ):
+        super().__init__(Shipment, session)
+        self.partner_service = partner_service
+        self.event_service = event_service
+
+    async def get(self, id: UUID) -> Shipment:
+        shipment = await self._get(id)
+        if not shipment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="shipment not found"
+            )
+        return shipment
 
     async def add(self, shipment_create: ShipmentCreate, seller: Seller) -> Shipment:
         new_shipment = Shipment(**shipment_create.model_dump(),
-                                status=ShipmentStatus.placed,
                                 estimated_delivery=datetime.now() + timedelta(days=3),
-                                seller_id=seller.id)
-        self.session.add(new_shipment)
-        await self.session.commit()
-        await self.session.refresh(new_shipment)
+                                seller_id=seller.id
+                                )
+        # assign delivery partnere to the shipment
+        partner = await self.partner_service.assign_shipment(
+            new_shipment)
 
-        return new_shipment
+        # add the delivery partner
+        new_shipment.delivery_partner_id = partner.id
 
-    async def update(self, id: UUID, shipment_update: dict[str, Any]) -> Shipment | None:
+        shipment = await self._add(new_shipment)
+
+        # add a new event for this shipment
+        await self.event_service.add(
+            shipment=new_shipment,
+            location=seller.zip_code,
+            status=ShipmentStatus.placed,
+            description=f"assigned to a delivery partner {partner.name}")
+        return shipment
+
+    # update an existing shipment
+    async def update(self, id: UUID, shipment_update: ShipmentUpdate, partner: DeliveryPartner) -> Shipment | None:
+        # validate the logged in partner with assigned partner
+        # on teh shipment with given id
         shipment = await self.get(id)
-        if not shipment:
-            return None
-        shipment.sqlmodel_update(shipment_update)
 
-        self.session.add(shipment)
-        await self.session.commit()
-        await self.session.refresh(shipment)
+        if not shipment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="shipment not found"
+            )
+        if shipment.delivery_partner_id != partner.id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authorized"
+            )
+        update = shipment_update.model_dump(exclude_none=True)
+
+        # update the estimated delivery
+        if shipment_update.estimated_delivery:
+            shipment.estimated_delivery = shipment_update.estimated_delivery
+
+        # only create an event if there is another update field other than just estimated delivery
+        if len(update) > 1 or not shipment_update.estimated_delivery:
+            await self.event_service.add(
+                shipment=shipment,
+                **update,
+            )
+        return await self._update(shipment)
+
+    async def cancel(self, id: UUID, seller: Seller) -> Shipment:
+        # validate if the seller trying to cancel is the one that initiated the shipment
+        shipment = await self.get(id)
+        if shipment.seller_id != seller.id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not Authorized"
+            )
+        # create the event
+        event = await self.event_service.add(
+            shipment=shipment,
+            status=ShipmentStatus.cancelled
+        )
+        shipment.timeline.append(event)
         return shipment
 
     async def delete(self, id: UUID) -> Shipment | None:
         shipment = await self.get(id)
         if not shipment:
             return None
-        await self.session.delete(shipment)
-        await self.session.commit()
-        return shipment
+        return await self._delete(shipment)
