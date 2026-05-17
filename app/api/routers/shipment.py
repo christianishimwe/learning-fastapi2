@@ -1,12 +1,15 @@
 from uuid import UUID
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
+from fastapi.templating import Jinja2Templates
 from app.api.dependencies import DeliveryPartnerDep, SellerDep, ShipmentServiceDep
 from app.database import models
 from app.services.shipment import ShipmentService
+from app.utils import TEMPLATE_DIR
 from ..schemas import shipment
 
 router = APIRouter(prefix="/shipment",
                    tags=["shipment"])
+templates = Jinja2Templates(TEMPLATE_DIR)
 
 
 @router.get("/", response_model=shipment.ShipmentRead)
@@ -55,3 +58,20 @@ async def update_shipment(
 @router.get("/cancel", response_model=shipment.ShipmentRead)
 async def cancel_shipment(id: UUID, seller: SellerDep, service: ShipmentServiceDep):
     return await service.cancel(id, seller)
+
+# track details of shipment
+
+
+@router.get("/track")
+async def get_tracking(request: Request, id: UUID, service: ShipmentServiceDep):
+    # check for the shipment with the given id
+    shipment = await service.get(id)
+
+    context = shipment.model_dump()
+    context["partner"] = shipment.delivery_partner.name
+    context["timeline"] = shipment.timeline
+    return templates.TemplateResponse(
+        request=request,
+        name="track.html",
+        context=context
+    )

@@ -21,6 +21,11 @@ async def register_seller(seller: SellerCreate, service: SellerServiceDep):
 
 @router.post("/login")
 async def login_seller(request_form: Annotated[OAuth2PasswordRequestForm, Depends()], service: SellerServiceDep):
+    # see if the email is verified
+    # get the user
+    if not await service.check_user_verified(request_form.username):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Email not verified")
     token = await service.token(request_form.username, request_form.password)
     return {
         "access_token": token,
@@ -46,3 +51,13 @@ async def get_seller(id: UUID, service: SellerServiceDep):
 @router.post("/")
 async def update_delivery_partner(partner_update: DeliveryPartnerUpdate, partner: DeliveryPartnerDep, service):
     pass
+
+# verify the seller's email
+
+
+@router.get("/verify")
+async def verify_delivery_partner_email(token: str, service: SellerServiceDep):
+    await service.verify_email(token)
+    return {"detail": "Account Verified"}
+
+# email password reset link

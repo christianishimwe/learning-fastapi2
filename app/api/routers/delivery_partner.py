@@ -20,6 +20,11 @@ async def register_delivery_partner(delivery_partner: DeliveryPartnerCreate, ser
 
 @router.post("/login")
 async def login_delivery_partner(request_form: Annotated[OAuth2PasswordRequestForm, Depends()], service: DeliveryPartnerServiceDep,):
+    # see if the email is verified
+    # get the user
+    if not await service.check_user_verified(request_form.username):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Email not verified")
     token = await service.token(request_form.username, request_form.password)
     return {
         "access_token": token,
@@ -44,3 +49,9 @@ async def logout_delivery_partner(token_data: Annotated[dict, Depends(get_partne
     return {
         "detail": "successfully logged out"
     }
+
+
+@router.get("/verify")
+async def verify_seller_email(token: str, service: DeliveryPartnerServiceDep):
+    await service.verify_email(token)
+    return {"detail": "Account Verified"}

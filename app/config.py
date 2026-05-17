@@ -20,13 +20,6 @@ class DatabaseSettings(BaseSettings):
     model_config = _base_config
 
 
-class SecuritySettings(BaseSettings):
-    JWT_SECRET_KEY: str
-    JWT_ALGORITHM: str
-
-    model_config = _base_config
-
-
 class RedisSettings(BaseSettings):
     REDIS_HOST: str
     REDIS_PORT: int
@@ -34,6 +27,26 @@ class RedisSettings(BaseSettings):
     model_config = _base_config
 
 
+class AppSettings(BaseSettings):
+    APP_BASE_URL: str = "http://localhost:8000"
+
+    model_config = _base_config
+
+
+class NotificationSettings(BaseSettings):
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_FROM_NAME: str
+    MAIL_SERVER: str
+    MAIL_PORT: int
+    MAIL_STARTTLS: bool
+    MAIL_SSL_TLS: bool
+    VALIDATE_CERTS: bool = True
+    model_config = _base_config
+
+
 database_settings = DatabaseSettings()
 redis_settings = RedisSettings()
-jwt_settings = SecuritySettings()
+notification_settings = NotificationSettings()
+app_settings = AppSettings()

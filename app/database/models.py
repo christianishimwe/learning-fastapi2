@@ -27,6 +27,10 @@ class Shipment(SQLModel, table=True):
             primary_key=True
         )
     )
+
+    client_contact_email: EmailStr | None = Field(default=None)
+    cleint_contact_phone: int | None = Field(default=None)
+
     content: str
     weight: float = Field(le=25)
     destination: int
@@ -85,6 +89,7 @@ class ShipmentEvent(SQLModel, table=True):
 class User(SQLModel):
     name: str
     email: EmailStr
+    email_verified: bool | None = Field(default=False)
     password_hash: str = Field(exclude=True)
 
 

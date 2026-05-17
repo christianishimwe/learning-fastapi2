@@ -1,4 +1,5 @@
 from uuid import UUID
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import SQLModel
 
@@ -9,7 +10,11 @@ class BaseService:
         self.session = session
 
     async def _get(self, id: UUID):
-        return await self.session.get(self.model, id)
+        returned_entity = await self.session.get(self.model, id)
+        if returned_entity is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+        return returned_entity
 
     async def _add(self, entity: SQLModel):
         self.session.add(entity)

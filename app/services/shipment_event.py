@@ -1,10 +1,13 @@
+from app.config import app_settings
 from app.database.models import Shipment, ShipmentEvent, ShipmentStatus
 from app.services.base import BaseService
+from app.services.notification import NotificationService
 
 
 class ShipmnentEventService(BaseService):
-    def __init__(self, session):
+    def __init__(self, session, tasks):
         super().__init__(ShipmentEvent, session)
+        self.notification_service = NotificationService(tasks)
 
     async def add(
         self,
@@ -30,6 +33,8 @@ class ShipmnentEventService(BaseService):
                 status, location),
             shipment_id=shipment.id
         )
+        if status:
+            await self._notify(shipment, status)
         return await self._add(new_event)
 
     async def get_latest_event(self, shipment: Shipment):
@@ -51,3 +56,63 @@ class ShipmnentEventService(BaseService):
                 return "cancelled by the seller"
             case _:
                 return f"scanned at {location}"
+
+    async def _notify(self, shipment: Shipment, status: ShipmentStatus):
+        estimated = shipment.estimated_delivery.strftime("%B %d, %Y")
+        match status:
+            case ShipmentStatus.placed:
+                await self.notification_service.send_mail_with_template(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is placed",
+                    context={
+                        "seller": shipment.seller.name,
+                        "partner": shipment.delivery_partner.name,
+                        "tracking_url": f"{app_settings.APP_BASE_URL}/shipment/track?id={shipment.id}",
+                    },
+                    template_name="mail_placed.html"
+                )
+            case ShipmentStatus.shipped:
+                await self.notification_service.send_mail_with_template(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is shipped",
+                    context={
+                        "seller": shipment.seller.name,
+                        "partner": shipment.delivery_partner.name,
+                        "content": shipment.content,
+                        "estimated_delivery": estimated,
+                    },
+                    template_name="mail_shipped.html"
+                )
+            case ShipmentStatus.in_transit:
+                await self.notification_service.send_mail_with_template(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is in transit",
+                    context={
+                        "seller": shipment.seller.name,
+                        "partner": shipment.delivery_partner.name,
+                        "content": shipment.content,
+                        "destination": shipment.destination,
+                        "estimated_delivery": estimated,
+                    },
+                    template_name="mail_in_transit.html"
+                )
+            case ShipmentStatus.delivered:
+                await self.notification_service.send_mail_with_template(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is delivered",
+                    context={
+                        "seller": shipment.seller.name,
+                        "content": shipment.content,
+                    },
+                    template_name="mail_delivered.html"
+                )
+            case ShipmentStatus.cancelled:
+                await self.notification_service.send_mail_with_template(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is cancelled",
+                    context={
+                        "seller": shipment.seller.name,
+                        "content": shipment.content,
+                    },
+                    template_name="mail_cancelled.html"
+                )
